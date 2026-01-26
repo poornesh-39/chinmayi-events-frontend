@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import {
   ArrowLeft,
-  Upload,
-  MessageSquare,
   Star,
   Trash2,
   Check,
