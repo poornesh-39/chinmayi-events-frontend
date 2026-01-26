@@ -36,35 +36,30 @@ export default function Testimonials() {
   const settings = {
   dots: true,
   infinite: true,
-  speed: 250,
-  slidesToShow: 3, 
+  speed: 300,
+  slidesToShow: 1, 
   slidesToScroll: 1,
   autoplay: true,
   autoplaySpeed: 5000,
   pauseOnHover: true,
-  arrows: true,
+  arrows: false,
+  adaptiveHeight: true,
+  centerMode: false,
+  swipeToSlide: true,
+  touchMove: true,
   responsive: [
     {
       breakpoint: 1024,
       settings: {
         slidesToShow: 3,
-        arrows: false
-      }
-    },
-    {
-      breakpoint: 640,
-      settings: {
-        slidesToShow: 1,
-        slidesToScroll: 1,
-        arrows: false
+        arrows: true
       }
     }
-
   ]
 }
 
 
-  return (
+return (
     <>
       <section id="testimonials" className="py-20 bg-[#faf9f6]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

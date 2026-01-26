@@ -3,3 +3,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.testimonials-slider .slick-track {
+  display: flex;
+}
+
+.testimonials-slider .slick-slide {
+  height: auto;
+}
+
+.testimonials-slider .slick-slide > div {
+  height: 100%;
+}
