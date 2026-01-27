@@ -18,6 +18,7 @@ interface Testimonial {
 export default function Testimonials() {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
   const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+  const [sliderReady, setSliderReady] = useState(false)
 
   /* ---------------- FETCH FROM DB ---------------- */
   useEffect(() => {
@@ -25,6 +26,10 @@ export default function Testimonials() {
       try {
         const data = await fetchExperiences();
         setTestimonials(data);
+
+        setTimeout(() => {
+          setSliderReady(true)
+        }, 100)
       } catch (error) {
         console.error('Failed to load testimonials', error)
       }
@@ -35,9 +40,9 @@ export default function Testimonials() {
 
   const settings = {
   dots: true,
-  infinite: true,
+  infinite: testimonials.length > 3,
   speed: 300,
-  slidesToShow: 1, 
+  slidesToShow: 1, // mobile-first
   slidesToScroll: 1,
   autoplay: true,
   autoplaySpeed: 5000,
@@ -45,8 +50,6 @@ export default function Testimonials() {
   arrows: false,
   adaptiveHeight: true,
   centerMode: false,
-  swipeToSlide: true,
-  touchMove: true,
   responsive: [
     {
       breakpoint: 1024,
@@ -57,6 +60,7 @@ export default function Testimonials() {
     }
   ]
 }
+
 
 
 return (
@@ -82,7 +86,8 @@ return (
 
           {/* Slider */}
           <div className="testimonials-slider">
-            <Slider {...settings}>
+            {sliderReady &&(
+            <Slider key={testimonials.length} {...settings}>
               {testimonials.map((testimonial) => (
                 <div key={testimonial._id} className="px-3 h-full">
                   <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
@@ -118,6 +123,7 @@ return (
                 </div>
               ))}
             </Slider>
+)}
           </div>
 
           {/* CTA Button */}
