@@ -73,7 +73,7 @@ export default function QuotationForm() {
 
     try {
       const response = await fetch(
-        'http://localhost:5000/api/quotation/generate-pdf',
+        `${import.meta.env.VITE_API_URL}/api/quotation/generate-pdf`,
         {
           method: 'POST',
           headers: {
