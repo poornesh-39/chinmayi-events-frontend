@@ -6,6 +6,7 @@ import {
   Check,
   X
 } from 'lucide-react';
+import QuotationForm from './QuotationForm';
 
 interface AdminPanelProps {
   onBack: () => void;
@@ -16,7 +17,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] =
-    useState<'gallery' | 'messages' | 'testimonials'>('gallery');
+    useState<'gallery' | 'messages' | 'testimonials' | 'quotations'>('gallery');
 
   /* ------------------ MOCK DATA ------------------ */
 
@@ -183,7 +184,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
       {/* Tabs */}
       <div className="bg-white shadow">
         <div className="flex gap-6 px-6">
-          {(['gallery', 'messages', 'testimonials'] as const).map(tab => (
+          {(['gallery', 'messages', 'testimonials', 'quotations'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -291,6 +292,11 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Quotations */}
+        {activeTab === 'quotations' && (
+          <QuotationForm />
         )}
       </div>
     </div>
