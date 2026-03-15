@@ -1,7 +1,7 @@
 import Slider from 'react-slick'
 import 'slick-carousel/slick/slick.css'
 import 'slick-carousel/slick/slick-theme.css'
-import { Star, Quote } from 'lucide-react'
+import { Star, Quote, AlertCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import FeedbackModal from './FeedbackModal'
@@ -19,10 +19,14 @@ export default function Testimonials() {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false)
   const [testimonials, setTestimonials] = useState<Testimonial[]>([])
   const [sliderReady, setSliderReady] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   /* ---------------- FETCH FROM DB ---------------- */
   useEffect(() => {
     const loadTestimonials = async () => {
+      setIsLoading(true)
+      setError(null)
       try {
         const data = await fetchExperiences();
         setTestimonials(data);
@@ -32,11 +36,46 @@ export default function Testimonials() {
         }, 100)
       } catch (error) {
         console.error('Failed to load testimonials', error)
+        setError('Failed to load testimonials. Please try again later.')
+        setSliderReady(false)
+      } finally {
+        setIsLoading(false)
       }
     }
 
     loadTestimonials()
   }, [])
+
+  /* Skeleton Card Component for Loading State */
+  const SkeletonCard = () => (
+    <div className="px-3 h-full">
+      <div className="bg-white rounded-xl p-8 shadow-lg h-full flex flex-col animate-pulse">
+        {/* Quote Icon Skeleton */}
+        <div className="w-12 h-12 bg-gray-300 rounded-full mb-6"></div>
+        
+        {/* Stars Skeleton */}
+        <div className="flex gap-2 mb-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="w-5 h-5 bg-gray-300 rounded-full"></div>
+          ))}
+        </div>
+        
+        {/* Text Skeleton (lines) */}
+        <div className="space-y-3 flex-grow mb-6">
+          <div className="h-4 bg-gray-300 rounded w-full"></div>
+          <div className="h-4 bg-gray-300 rounded w-full"></div>
+          <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+          <div className="h-4 bg-gray-300 rounded w-4/6"></div>
+        </div>
+        
+        {/* Footer Skeleton */}
+        <div className="border-t border-gray-200 pt-4 space-y-2">
+          <div className="h-4 bg-gray-300 rounded w-1/2"></div>
+          <div className="h-3 bg-gray-300 rounded w-1/3"></div>
+        </div>
+      </div>
+    </div>
+  )
 
   const settings = {
   dots: true,
@@ -86,9 +125,29 @@ return (
 
           {/* Slider */}
           <div className="testimonials-slider">
-            {sliderReady &&(
-            <Slider key={testimonials.length} {...settings}>
-              {testimonials.map((testimonial) => (
+            {isLoading ? (
+              <Slider key="skeleton" {...settings}>
+                {[...Array(3)].map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </Slider>
+            ) : error ? (
+              <div className="min-h-96 flex flex-col items-center justify-center gap-6 bg-white rounded-xl p-8 shadow-lg">
+                <div className="text-red-500">
+                  <AlertCircle className="w-16 h-16 mx-auto mb-4" />
+                  <p className="text-lg font-semibold text-center">Unable to Load Testimonials</p>
+                  <p className="text-gray-600 text-center mt-2">{error}</p>
+                </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-2 bg-[#d4af37] text-[#1a1a2e] rounded-lg font-semibold hover:bg-yellow-500 transition"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : testimonials.length > 0 && sliderReady ? (
+              <Slider key={testimonials.length} {...settings}>
+                {testimonials.map((testimonial) => (
                 <div key={testimonial._id} className="px-3 h-full">
                   <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
                     <div className="w-12 h-12 bg-[#d4af37]/20 rounded-full flex items-center justify-center mb-6">
@@ -123,7 +182,11 @@ return (
                 </div>
               ))}
             </Slider>
-)}
+            ) : (
+              <div className="text-center py-16 bg-white rounded-xl shadow-lg">
+                <p className="text-gray-500 text-lg">No testimonials available yet</p>
+              </div>
+            )}
           </div>
 
           {/* CTA Button */}

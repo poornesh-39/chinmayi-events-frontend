@@ -123,6 +123,11 @@ export default function QuotationForm() {
       return;
     }
 
+    if (!eventType.trim()) {
+      alert('Please select an event type');
+      return;
+    }
+
     if (items.some(item => !item.material.trim() || item.amount === 0)) {
       alert('Please fill all item details (material name and amount)');
       return;
@@ -343,15 +348,24 @@ export default function QuotationForm() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Event Type
+            Event Type *
           </label>
-          <input
-            type="text"
+          <select
             value={eventType}
             onChange={e => setEventType(e.target.value)}
-            placeholder="e.g., Wedding, Birthday"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
-          />
+          >
+            <option value="">Select Event Type</option>
+            <option value="wedding">Wedding</option>
+            <option value="birthday">Birthday</option>
+            <option value="engagement">Engagement</option>
+            <option value="reception">Reception</option>
+            <option value="haldi(pre-wedding)">Haldi (Pre-Wedding)</option>
+            <option value="naming-ceremony">Naming Ceremony</option>
+            <option value="housewarming">Housewarming</option>
+            <option value="corporate">Corporate</option>
+            <option value="other">Other</option>
+          </select>
         </div>
 
         <div>
