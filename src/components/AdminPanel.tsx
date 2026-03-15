@@ -14,6 +14,17 @@ interface AdminPanelProps {
   onBack: () => void;
 }
 
+interface GalleryItem {
+  _id: string;
+  title: string;
+  description?: string;
+  eventCategory: string;
+  cloudinaryUrl: string;
+  mediaType: 'image' | 'video';
+  isFeatured?: boolean;
+  createdAt?: string;
+}
+
 // Helper function to get video thumbnail URL from Cloudinary
 const getVideoThumbnailUrl = (videoUrl: string): string => {
   if (!videoUrl.includes('cloudinary')) return videoUrl;
@@ -41,7 +52,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadPreview, setUploadPreview] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [galleryList, setGalleryList] = useState<any[]>([]);
+  const [galleryList, setGalleryList] = useState<GalleryItem[]>([]);
   const [isLoadingGallery, setIsLoadingGallery] = useState(false);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
 
@@ -57,7 +68,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
       setIsLoggedIn(true);
     } else {
       alert(
-        'Invalid credentials\nadmin@chinmayievents.com / admin123'
+        'Invalid credentials'
       );
     }
   };
@@ -458,7 +469,7 @@ export default function AdminPanel({ onBack }: AdminPanelProps) {
                 </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {galleryList.map(media => (
+                  {galleryList.map((media: GalleryItem) => (
                     <div
                       key={media._id}
                       className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition"

@@ -209,6 +209,7 @@ export default function QuotationForm() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
+            quotationNumber,
             clientName,
             clientEmail,
             clientPhone,
@@ -238,7 +239,11 @@ export default function QuotationForm() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      alert('Quotation saved and PDF generated successfully!');
+      if (isEditMode) {
+        alert('✓ Quotation updated and PDF generated successfully!');
+      } else {
+        alert('✓ Quotation saved and PDF generated successfully! Quotation #: ' + quotationNumber);
+      }
     } catch (error) {
       console.error('Error:', error);
       alert('Error processing quotation. Please try again.');
