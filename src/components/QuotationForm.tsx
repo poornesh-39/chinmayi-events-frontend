@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Download } from 'lucide-react';
+import { Trash2, Download, Search } from 'lucide-react';
 
 interface QuotationItem {
   id: number;
@@ -20,11 +20,16 @@ export default function QuotationForm() {
   const [quotationDate, setQuotationDate] = useState(
     new Date().toISOString().split('T')[0]
   );
+  const [eventDate, setEventDate] = useState('');
   const [transportationCharge, setTransportationCharge] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [searchingQuotation, setSearchingQuotation] = useState(false);
+  const [searchQuotationNumber, setSearchQuotationNumber] = useState('');
+  const [currentQuotationNumber, setCurrentQuotationNumber] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const addItem = () => {
-    const newId = Math.max(...items.map(item => item.id), 0) + 1;
+    const newId = Math.max(0, ...items.map(item => item.id)) + 1;
     setItems([
       ...items,
       { id: newId, material: '', quantity: 1, amount: 0 }
@@ -57,10 +62,69 @@ export default function QuotationForm() {
     return items.reduce((sum, item) => sum + item.quantity * item.amount, 0);
   };
 
-  const handleCreatePDF = async () => {
+  const handleSearchQuotation = async () => {
+    if (!searchQuotationNumber.trim()) {
+      alert('Please enter a quotation number');
+      return;
+    }
+
+    setSearchingQuotation(true);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/quotation/${searchQuotationNumber}`,
+        {
+          method: 'GET'
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Quotation not found');
+      }
+
+      const data = await response.json();
+      const quotation = data.quotation;
+
+      // Populate form with quotation data
+      setClientName(quotation.clientName);
+      setClientEmail(quotation.clientEmail || '');
+      setClientPhone(quotation.clientPhone || '');
+      setEventType(quotation.eventType || '');
+      setQuotationDate(quotation.quotationDate);
+      setEventDate(quotation.eventDate || '');
+      setTransportationCharge(quotation.transportationCharge || 0);
+      
+      // Map quotation items to form items with id
+      const mappedItems = quotation.items.map((item: QuotationItem, index: number) => ({
+        id: index + 1,
+        material: item.material,
+        quantity: item.quantity,
+        amount: item.amount
+      }));
+      setItems(mappedItems);
+      
+      setCurrentQuotationNumber(searchQuotationNumber);
+      setIsEditMode(true);
+      setSearchQuotationNumber('');
+      
+      alert('Quotation loaded successfully!');
+    } catch (error) {
+      console.error('Error fetching quotation:', error);
+      alert('Error fetching quotation. Please check the quotation number and try again.');
+    } finally {
+      setSearchingQuotation(false);
+    }
+  };
+
+  const handleCreateOrUpdatePDF = async () => {
     // Validate form
     if (!clientName.trim()) {
       alert('Please enter client name');
+      return;
+    }
+
+    if (!eventType.trim()) {
+      alert('Please select an event type');
       return;
     }
 
@@ -72,6 +136,71 @@ export default function QuotationForm() {
     setLoading(true);
 
     try {
+      let quotationNumber = currentQuotationNumber;
+      
+      // If not in edit mode, save first to get quotation number
+      if (!isEditMode) {
+        const saveResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/quotation/save`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              quotationNumber: '',
+              clientName,
+              clientEmail,
+              clientPhone,
+              eventType,
+              quotationDate,
+              eventDate,
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              items: items.map(({ id: _id, ...rest }) => rest),
+              total: calculateTotal(),
+              transportationCharge
+            })
+          }
+        );
+
+        if (!saveResponse.ok) {
+          throw new Error('Failed to save quotation');
+        }
+
+        const saveData = await saveResponse.json();
+        quotationNumber = saveData.quotation.quotationNumber;
+        setCurrentQuotationNumber(quotationNumber);
+        setIsEditMode(true);
+      } else {
+        // Update existing quotation
+        const updateResponse = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/quotation/${currentQuotationNumber}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              clientName,
+              clientEmail,
+              clientPhone,
+              eventType,
+              quotationDate,
+              eventDate,
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              items: items.map(({ id: _id, ...rest }) => rest),
+              total: calculateTotal(),
+              transportationCharge
+            })
+          }
+        );
+
+        if (!updateResponse.ok) {
+          throw new Error('Failed to update quotation');
+        }
+      }
+
+      // Generate PDF
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/quotation/generate-pdf`,
         {
@@ -85,7 +214,9 @@ export default function QuotationForm() {
             clientPhone,
             eventType,
             quotationDate,
-            items,
+            eventDate,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            items: items.map(({ id: _id, ...rest }) => rest),
             total: calculateTotal(),
             transportationCharge
           })
@@ -107,13 +238,26 @@ export default function QuotationForm() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      alert('PDF generated successfully!');
+      alert('Quotation saved and PDF generated successfully!');
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      console.error('Error:', error);
+      alert('Error processing quotation. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNewQuotation = () => {
+    setItems([{ id: 1, material: '', quantity: 1, amount: 0 }]);
+    setClientName('');
+    setClientEmail('');
+    setClientPhone('');
+    setEventType('');
+    setQuotationDate(new Date().toISOString().split('T')[0]);
+    setEventDate('');
+    setTransportationCharge(0);
+    setCurrentQuotationNumber('');
+    setIsEditMode(false);
   };
 
   return (
@@ -124,6 +268,42 @@ export default function QuotationForm() {
       >
         Create Quotation
       </h2>
+
+      {/* Search Section */}
+      <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          Search Existing Quotation
+        </label>
+        <div className="flex gap-2 mb-2">
+          <input
+            type="text"
+            value={searchQuotationNumber}
+            onChange={e => setSearchQuotationNumber(e.target.value)}
+            placeholder="Enter quotation number"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
+            disabled={searchingQuotation}
+          />
+          <button
+            onClick={handleSearchQuotation}
+            disabled={searchingQuotation}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Search size={18} />
+            {searchingQuotation ? 'Searching...' : 'Search'}
+          </button>
+        </div>
+        {isEditMode && (
+          <p className="text-sm text-blue-600">
+            ✓ Editing quotation: {currentQuotationNumber}
+            <button
+              onClick={handleNewQuotation}
+              className="ml-3 text-[#d4af37] hover:text-yellow-600 font-medium"
+            >
+              Create New
+            </button>
+          </p>
+        )}
+      </div>
 
       {/* Client Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -168,15 +348,24 @@ export default function QuotationForm() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Event Type
+            Event Type *
           </label>
-          <input
-            type="text"
+          <select
             value={eventType}
             onChange={e => setEventType(e.target.value)}
-            placeholder="e.g., Wedding, Birthday"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
-          />
+          >
+            <option value="">Select Event Type</option>
+            <option value="wedding">Wedding</option>
+            <option value="birthday">Birthday</option>
+            <option value="engagement">Engagement</option>
+            <option value="reception">Reception</option>
+            <option value="haldi(pre-wedding)">Haldi (Pre-Wedding)</option>
+            <option value="naming-ceremony">Naming Ceremony</option>
+            <option value="housewarming">Housewarming</option>
+            <option value="corporate">Corporate</option>
+            <option value="other">Other</option>
+          </select>
         </div>
 
         <div>
@@ -187,6 +376,18 @@ export default function QuotationForm() {
             type="date"
             value={quotationDate}
             onChange={e => setQuotationDate(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Event Date
+          </label>
+          <input
+            type="date"
+            value={eventDate}
+            onChange={e => setEventDate(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
           />
         </div>
@@ -332,14 +533,15 @@ export default function QuotationForm() {
       {/* Action Buttons */}
       <div className="flex gap-4 justify-end">
         <button
-          onClick={handleCreatePDF}
+          onClick={handleCreateOrUpdatePDF}
           disabled={loading}
           className="flex items-center gap-2 px-8 py-3 bg-[#d4af37] text-black rounded-lg hover:bg-yellow-500 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download size={20} />
-          {loading ? 'Generating...' : 'Create PDF'}
+          {loading ? 'Processing...' : isEditMode ? 'Update & Download PDF' : 'Create PDF'}
         </button>
       </div>
     </div>
   );
+
 }
